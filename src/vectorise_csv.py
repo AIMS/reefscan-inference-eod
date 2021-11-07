@@ -50,13 +50,15 @@ def inference(input_csv_path):
     # load the model
     feature_layer_name = 'global_average_pooling2d_1' #'avg_pool'
     tic = time()
-    model = load_model(model_file)
-    # print (model.summary())
-    # model = Model(inputs=model.inputs,
-    #               outputs=model.get_layer(feature_layer_name).output)
+    # model = load_model(model_file)
+    model = load_model(weight_file)
+    print(model.summary())
+    model = Model(inputs=model.inputs,
+                  outputs=model.get_layer(feature_layer_name).output)
     print('Completed load model in {}'.format(convertTime(time()-tic)))
 
     patches = read_csv(input_csv_path)
+    patches = patches[0:10]
 
     batch_size = BATCH_SIZE
     val_generator = PatchLoader(patches, batch_size)
@@ -73,12 +75,17 @@ def inference(input_csv_path):
     print(np.shape(predictions), np.shape(predictions[0]))
 
     i = 0
+    np.set_printoptions(linewidth=np.inf)
     for patch in patches:
-        vector_filename = patch["patch_file"] + ".patch.txt"
-        with open(vector_filename, "w") as vector_file:
-            vector_file.write(str(predictions[i]))
+        vector = predictions[i]
+        vector_string = str(vector.tolist())
+        patch["feature_vector"] = vector_string
+        # vector_filename = patch["patch_file"] + ".patch.txt"
+        # with open(vector_filename, "w") as vector_file:
+        #     vector_file.write(str(predictions[i]))
         i += 1
 
+    write_csv(patches, "c:/temp/reefscan-vectors.csv")
 
 def inference_onnx(input_csv_path):
     sess_options = onnxruntime.SessionOptions()
@@ -102,10 +109,13 @@ def inference_onnx(input_csv_path):
 
         i = 0
         for patch in batch_patches:
-            vector_filename = patch["patch_file"] + ".patch.txt"
-            with open(vector_filename, "w") as vector_file:
-                vector_file.write(str(vectors[i]))
+            patch["feature_vector"] = vectors[i]
+            # vector_filename = patch["patch_file"] + ".patch.txt"
+            # with open(vector_filename, "w") as vector_file:
+            #     vector_file.write(str(vectors[i]))
             i += 1
+
+
         print(f"finished batch {batch} of {batch_count}")
 
 
@@ -184,10 +194,18 @@ def read_csv(input_csv_path):
     return patches
 
 
+def write_csv(dicts, csv_path):
+    with open(csv_path, "w", newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=dicts[0].keys())
+        writer.writeheader()
+        for row in dicts:
+            writer.writerow(row)
+
+
 if __name__ == '__main__':
-    points_file = 'C:/aims/reef-scanner/images/20210727_233059_Seq02/photos.csv'
+    points_file = 'C:/aims/reef-scan/patches/photos.csv'
     print (points_file)
 
     tic = time()
-    inference_lite(points_file)
+    inference(points_file)
     print('Completed load model in {}'.format(convertTime(time()-tic)))
