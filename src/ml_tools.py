@@ -43,7 +43,7 @@ def row_to_vector(row):
 
 
 def list_to_vector(vector_list):
-    return numpy.array(vector_list, dtype=numpy.float32)
+    return numpy.array(vector_list, dtype=numpy.float64)
 
 
 def string_to_vector(vector_string):
@@ -80,16 +80,24 @@ def predict_batch(feature_vector_list, svc_std, sc, le):
     return labels
 
 
-def train_data_frame_with_logistic_regression(train_df: pd.DataFrame, test_df: pd.DataFrame, threads):
+def train_data_frame_with_logistic_regression(train_df: pd.DataFrame, test_df: pd.DataFrame, threads,
+                                              label_column='human_classification_label', test_out_csv=None):
     logger.debug(h.heap().bytype)
     vectors = train_df.feature_vector.to_numpy()
     logger.debug("Completed feature vector to numpy")
+    logger.debug("vectors.shape")
+    logger.debug(vectors.shape)
+
     logger.debug(h.heap().bytype)
     X = numpy.stack(vectors)
     logger.debug("Stacked vectors")
+    logger.debug("X.shape")
+    logger.debug(X.shape)
     logger.debug(h.heap().bytype)
-    labels = train_df.human_classification_label.to_numpy()
+    labels = train_df[label_column].to_numpy()
     logger.debug("Trained")
+    logger.debug("labels.shape")
+    logger.debug(labels.shape)
     logger.debug(h.heap().bytype)
 
     le = LabelEncoder()
@@ -107,10 +115,10 @@ def train_data_frame_with_logistic_regression(train_df: pd.DataFrame, test_df: p
     logger.info('trained svm in {} seconds'.format(convert_time(time() - tic)))
     logger.debug(h.heap().bytype)
 
-    test_df_copy = test_df[test_df['human_classification_label'].isin(le.classes_)]
+    test_df_copy = test_df[test_df[label_column].isin(le.classes_)]
     test_vectors = test_df_copy.feature_vector.to_numpy()
     X_test = numpy.stack(test_vectors)
-    labels_test = test_df_copy.human_classification_label.to_numpy()
+    labels_test = test_df_copy[label_column].to_numpy()
 
     # Run predictions on testing set
     X_test_std = sc.transform(X_test)
@@ -122,6 +130,10 @@ def train_data_frame_with_logistic_regression(train_df: pd.DataFrame, test_df: p
     f1_score = metrics.f1_score(y_test, y_pred, average='weighted')
     accuracy_score = metrics.accuracy_score(y_test, y_pred)
     logger.info("Accuracy: {} F1 Score {}".format(accuracy_score, f1_score))
+    if test_out_csv is not None:
+        y_pred_labels = le.inverse_transform(y_pred)
+        test_df_copy["predicted"] = y_pred_labels
+        test_df_copy.to_csv("c:/temp/" + test_out_csv)
     return svc_std, sc, le, f1_score, accuracy_score
 
 

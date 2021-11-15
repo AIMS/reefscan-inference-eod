@@ -5,7 +5,9 @@ import keras
 import time
 
 
-def get_patch(filename):
+def get_patch(dict_item):
+    # filename = dict_item["patch_file"]
+    filename = "c:\\patches\\" + dict_item["FILE_NAME"] + "-point3.jpg"
     patch = Image.open(filename)
     patch = keras.preprocessing.image.img_to_array(patch)
     # patch = np.expand_dims(patch, axis=0)
@@ -28,7 +30,7 @@ class PatchLoader(Sequence):
         for index in range(idx * self.batch_size, (idx + 1) * self.batch_size):
             indexes.append(index)
 
-        patches = [get_patch(dict_item["patch_file"])
+        patches = [get_patch(dict_item)
             for dict_item in batch]
 
         array = np.array(patches)

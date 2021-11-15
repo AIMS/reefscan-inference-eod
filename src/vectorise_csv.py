@@ -58,7 +58,7 @@ def inference(input_csv_path):
     print('Completed load model in {}'.format(convertTime(time()-tic)))
 
     patches = read_csv(input_csv_path)
-    patches = patches[0:10]
+    # patches = patches[0:10]
 
     batch_size = BATCH_SIZE
     val_generator = PatchLoader(patches, batch_size)
@@ -85,7 +85,7 @@ def inference(input_csv_path):
         #     vector_file.write(str(predictions[i]))
         i += 1
 
-    write_csv(patches, "c:/temp/reefscan-vectors.csv")
+    write_csv(patches, "c:/temp/reefscan-vectors1.csv")
 
 def inference_onnx(input_csv_path):
     sess_options = onnxruntime.SessionOptions()
@@ -203,7 +203,8 @@ def write_csv(dicts, csv_path):
 
 
 if __name__ == '__main__':
-    points_file = 'C:/aims/reef-scan/patches/photos.csv'
+    # points_file = 'C:/aims/reef-scan/patches/photos.csv'
+    points_file = 'C:/greg/reefscan_ml/from-reefmon/points.csv'
     print (points_file)
 
     tic = time()
