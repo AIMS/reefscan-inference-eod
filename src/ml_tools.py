@@ -1,5 +1,7 @@
 import pandas as pd
+from sklearn.calibration import calibration_curve
 from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn import preprocessing
 from sklearn.linear_model import LogisticRegression
 from time import time
 import math
@@ -81,7 +83,8 @@ def predict_batch(feature_vector_list, svc_std, sc, le):
 
 
 def train_data_frame_with_logistic_regression(train_df: pd.DataFrame, test_df: pd.DataFrame, threads,
-                                              label_column='human_classification_label', test_out_csv=None):
+                                              label_column='human_classification_label',
+                                              test_out_csv=None, train_out_csv=None):
     logger.debug(h.heap().bytype)
     vectors = train_df.feature_vector.to_numpy()
     logger.debug("Completed feature vector to numpy")
@@ -125,6 +128,16 @@ def train_data_frame_with_logistic_regression(train_df: pd.DataFrame, test_df: p
     y_test = le.transform(labels_test)
     tic = time()
     y_pred = svc_std.predict(X_test_std)
+    y_proba = svc_std.predict_proba(X_test_std)
+    binarizer = preprocessing.LabelBinarizer()
+    binarizer.fit(Y)
+    y_binary = binarizer.transform(y_test)
+    y_binary_ravel = y_binary.ravel()
+    y_proba_ravel = y_proba.ravel()
+    prob_true, prob_pred = calibration_curve(y_binary_ravel, y_proba_ravel, n_bins=15, strategy="quantile")
+    cal_curve = pd.DataFrame({"prob_true": prob_true, "prob_pred": prob_pred})
+    cal_curve.to_csv("C:/greg/reefscan_ml/tests/train-results/" + test_out_csv + ".cal.csv")
+
     logger.info('predicted on {} points in {}'.format(len(y_pred), convert_time(time() - tic)))
     logger.debug(h.heap().bytype)
     f1_score = metrics.f1_score(y_test, y_pred, average='weighted')
@@ -133,7 +146,11 @@ def train_data_frame_with_logistic_regression(train_df: pd.DataFrame, test_df: p
     if test_out_csv is not None:
         y_pred_labels = le.inverse_transform(y_pred)
         test_df_copy["predicted"] = y_pred_labels
-        test_df_copy.to_csv("c:/temp/" + test_out_csv)
+        test_df_copy.to_csv("C:/greg/reefscan_ml/tests/train-results/" + test_out_csv)
+
+    if train_out_csv is not None:
+        train_df.to_csv("C:/greg/reefscan_ml/tests/train-results/" + train_out_csv)
+
     return svc_std, sc, le, f1_score, accuracy_score
 
 

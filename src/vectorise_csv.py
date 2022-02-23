@@ -1,3 +1,5 @@
+import sys
+
 import onnxruntime
 import tensorflow as tf
 from patch_loader import PatchLoader
@@ -10,8 +12,9 @@ from keras.models import load_model, Model
 from time import time
 import csv
 
-BATCH_SIZE = 100
-WORKERS = 1000
+BATCH_SIZE = 1000
+WORKERS = 3000
+patch_folder = "/data/"
 
 gpu_devices = tf.config.experimental.list_physical_devices('GPU')
 if len(gpu_devices) == 0:
@@ -84,8 +87,9 @@ def inference(input_csv_path):
         # with open(vector_filename, "w") as vector_file:
         #     vector_file.write(str(predictions[i]))
         i += 1
+    # write_csv(patches, "C:/greg/reefscan_ml/tests/input/reefscan-vectors1-aug.csv")
+    write_csv(patches, "/data/patches/tensor-out.csv")
 
-    write_csv(patches, "c:/temp/reefscan-vectors1.csv")
 
 def inference_onnx(input_csv_path):
     sess_options = onnxruntime.SessionOptions()
@@ -165,11 +169,12 @@ def inference_lite(input_csv_path):
             i += 1
         print(f"finished batch {batch} of {batch_count}")
 
+
 def get_patches(patch_dicts):
     patches = np.empty(shape=(len(patch_dicts), 256, 256, 3), dtype=np.float32)
     index = 0
     for patch_dict in patch_dicts:
-        patch = Image.open(patch_dict['patch_file'])
+        patch = Image.open(patch_folder + patch_dict['patch_file'])
         patch = keras.preprocessing.image.img_to_array(patch)
         patches[index] = patch
         index += 1
@@ -203,10 +208,22 @@ def write_csv(dicts, csv_path):
 
 
 if __name__ == '__main__':
-    # points_file = 'C:/aims/reef-scan/patches/photos.csv'
-    points_file = 'C:/greg/reefscan_ml/from-reefmon/points.csv'
+    if len(sys.argv) < 2:
+        method = "TF"
+    else:
+        method = sys.argv[1]
+    print ('method: ', method)
+    points_file = '/data/patches/photos.csv'
+    # points_file = 'C:/greg/reefscan_ml/from-reefmon/aug_points.csv'
     print (points_file)
 
     tic = time()
-    inference(points_file)
+    if method == "TFL":
+        inference_lite(points_file)
+    elif method == "ONX":
+        inference_onnx(points_file)
+    else:
+        inference(points_file)
+
+
     print('Completed load model in {}'.format(convertTime(time()-tic)))

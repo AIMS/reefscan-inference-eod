@@ -4,11 +4,18 @@ import numpy as np
 import keras
 import time
 
+# patch_folder = "c:\\patches\\"
+patch_folder = "/data/"
+
 
 def get_patch(dict_item):
     # filename = dict_item["patch_file"]
-    filename = "c:\\patches\\" + dict_item["FILE_NAME"] + "-point3.jpg"
-    patch = Image.open(filename)
+    try:
+        filename = patch_folder + dict_item["patch_file"] + "-point3.jpg"
+        patch = Image.open(filename)
+    except:
+        filename = patch_folder + dict_item["patch_file"]
+        patch = Image.open(filename)
     patch = keras.preprocessing.image.img_to_array(patch)
     # patch = np.expand_dims(patch, axis=0)
     return patch
